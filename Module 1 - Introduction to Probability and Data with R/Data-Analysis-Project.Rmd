@@ -1,0 +1,158 @@
+---
+title: "Exploring the BRFSS data"
+output: html_document
+---
+
+## Introduction 
+
+This "Data Analysis Project" is part of the requirements for the conclusion of the course "Introduction to Probability and Data with R" by the Duke Univeristy (Coursera). Its main objectives include: 
+
+- Explore the dataset regarding the type of data and sampling;
+- Identify three research questions to be answered using available data;
+- Perform an exploratory analysis to address the raised questions. 
+
+### Setup
+
+One of the first steps in the programming assignment is to load some useful packages as well as the dataset we will be working with. 
+
+#### Load packages
+
+```{r load-packages, message = FALSE}
+library(ggplot2)
+library(dplyr)
+library(magrittr)
+```
+
+#### Load data
+
+```{r load-data}
+load("brfss2013.RData")
+```
+
+
+## Part 1: DATA
+
+In this first part of the assignment, we will be describing a little bit about the sample collecting and the implications of this data collection method on the scope of inference (generalizability / causality).
+
+### The Data
+
+The data from this project come from the "Behavioral Risk Factor Surveillance System". You can learn more about this survey on the following website: https://www.cdc.gov/brfss/.
+
+### Background 
+
+The Behavioral Risk Factor Surveillance System (BRFSS) is a national survey that collects health-related data by telephone about U.S. residents (adults +18 years old) regarding their health-related risk behaviors, chronic health conditions, and use of preventive services. It was established in 1984 with 15 states, but not BRFSS collects data in all 50 states as well as the District of Columbia and three U.S. territories. The survey completes more than 400,000 adult interviews each year, making it the largest continuously conducted health survey system in the world.
+
+### Generalizability / Causality  
+
+This is a population-based study since the data have been collected considering the population over the 50 U.S states plus the three U.S. territories. Furthermore, the data are randomly collected, obtained by telephone interviews. It means that people are randomly selected to participate, and those who answer the phone and agree to participate in the survey are included in the study. 
+
+*Generalizability:* **In summary, since this is a large representative random sample, we can conclude that the data for the sample is generalizable for the adult population of the United States.**
+
+The BRFSS is a cross-sectional telephone survey, which means that each year the data are collected independently from other previous years. In other words, people participating in the survey are not followed over time about their health-related aspects of interest in the survey. 
+
+*Causality:* **Since this is an observational cross-sectional survey, we cannot establish causal inference through the data. We may draw conclusions about prevalences, correlation, and even association. However, we are not able to distinguish the direction of this association, in other words, the causality. We cannot assume that one outcome causes the other, instead of the other outcome causing the first one**
+
+## Part 2: RESEARCH QUESTIONS
+
+In this project I will be working to answer three research questions: 
+
+#### 1. **Is there any correlation between the number of hours slept and the participant's body mass index (BMI), overall, and between sexes? ** 
+
+**Background:** Some studies in the area of chrononutrition have raised a possible relationship between individuals' sleep time and their weight status. In this question, I want to explore this possible relation, under the assumption (hypothesis) that people who sleep less have a higher BMI.
+
+
+#### 2. **Are there any differences in the general health status between sexes?** 
+
+**Background:** It is believed that women usually are more concerned about their health than men. Besides, men are related to an overall health status worse than women. In this question, I want to check if women have a reported health status higher than men.  
+
+
+#### 3. **Are there any differences between the reported income levels and overall life satisfaction? Are any differences in these levels of income between sexes?** 
+
+**Background:** Are people in the highest levels of income more satisfied with their lives? Also, I am interested to see if women have a lower income than men.   
+
+
+## Part 3: EXPLORATORY DATA ANALYSIS (EDA)
+
+### **Research Question 1**
+
+To answer the first question, about the relationship between sleep time and weight status, I will be using three variables: 
+
+ * **How Much Time Do You Sleep** 
+   - var: sleptime1 - *"On average, how many hours of sleep do you get in a 24-hour period?"*
+   
+   Discrete variable: Range from 1-24. Presence of NAs and refuse (removed for the analysis)
+
+ * **Computed BMI categories **
+   - var: weight2: *"Four-categories of Body Mass Index"*
+   
+   Qualitative variable: 1 - Underweight; 2 - Normal Weight; 3 - Overweight; 4 - Obese
+ 
+ * **Respondents Sex**
+   - var: sex: *"Indicate sex of respondent"*
+   
+   Binary outcome: Assume 1 - Male; 2 - Female
+
+```{r}
+# Removing NAs and cleaning the data
+
+question1 <- brfss2013 %>%
+   filter(!is.na(sleptim1)&!is.na(X_bmi5cat)&!is.na(sex))%>%
+   select(sleptim1, X_bmi5cat, sex)
+
+#Exploring the variables 
+
+str(question1)
+summary(question1)
+
+```
+
+The **str** function provides information about the structure of the object (question 1). The dataset contains 458,915 observations after NAs and refusal removal among the three categories. 
+
+From the **summary** output we can see the absolute frequency for each level on the categorical variables (sex and BMI categories). The summary statistics for sleep time - a discrete variable - show a range of 1-24 hours of sleep with a mean (7.049 hours) close to the median (7 hours). 
+
+
+```{r}
+#Descriptive Statistics
+
+table1 <- table(question1$sex, question1$X_bmi5cat)
+prop.table(table1, 1)
+
+aggregate(x = question1$sleptim1,
+          by = list(question1$sex),
+          FUN = mean) 
+
+aggregate(x = question1$sleptim1,
+          by = list(question1$X_bmi5cat),
+          FUN = mean)  
+
+```
+
+The descriptive statistics show that men are mostly overweight and women mostly normal-weight. The obesity rate is close to 30% for both sexes. Very few individuals were underweight. 
+
+The mean sleep time between sexes was very similar: **7.03h** for men and **7.06h** for women. 
+
+When considering weight status, the highest mean sleep (7.12h) time was among normal-weight individuals, while the lowest mean sleep time was among obese participants (6.95h). 
+
+```{r}
+#Plotting graphs
+
+ggplot(question1, aes(x=X_bmi5cat, y=sleptim1, fill=sex)) + 
+    geom_boxplot() 
+
+```
+
+Finally, when investigating sleep time by sex among nutritional status categories the plots showed no relevant or different pattern. 
+
+* ***In summary, it seems that there is not an association between sleep time and nutritional status.***  
+
+### **Research Question 2**
+
+
+### **Research Question 3**
+
+
+**© Lais Duarte Batista**
+ 
+**All Rights Reserved**
+ 
+**August 01, 2020**
