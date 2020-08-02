@@ -21,6 +21,8 @@ One of the first steps in the programming assignment is to load some useful pack
 library(ggplot2)
 library(dplyr)
 library(magrittr)
+library(scales)
+library(RColorBrewer)
 ```
 
 #### Load data
@@ -137,7 +139,8 @@ When considering weight status, the highest mean sleep (7.12h) time was among no
 #Plotting graphs
 
 ggplot(question1, aes(x=X_bmi5cat, y=sleptim1, fill=sex)) + 
-    geom_boxplot() 
+    geom_boxplot() + labs(y = "Hours of Sleep", x = "BMI categories") +
+   theme_bw() + scale_fill_brewer(palette="Set2")
 
 ```
 
@@ -146,6 +149,37 @@ Finally, when investigating sleep time by sex among nutritional status categorie
 * ***In summary, it seems that there is not an association between sleep time and nutritional status.***  
 
 ### **Research Question 2**
+
+```{r}
+# Removing NAs and cleaning the data
+
+question2 <- brfss2013 %>%
+   filter(!is.na(genhlth)&!is.na(sex))%>%
+   select(genhlth, sex)
+
+#Exploring the variables 
+
+str(question2)
+summary(question2)
+```
+
+
+```{r}
+table2 <- table(question2$sex, question2$genhlth)
+prop.table(table2, 1)
+
+```
+
+```{r}
+ggplot(question2, aes(x= genhlth,  group=sex)) + 
+    geom_bar(aes(y = ..prop.., fill = factor(..x..)), stat="count") +
+    geom_text(aes( label = scales::percent(..prop.., round(digits = 1)),
+                   y= ..prop.. ), stat= "count", vjust = -.3) +
+    labs(y = "Percentage", x = "General Health", fill="Sex") +theme_bw()+
+   facet_grid(~sex) + scale_fill_brewer(palette="Set2")+
+   scale_y_continuous(labels=percent, limits=c(0,0.4, 0.2))
+   
+```
 
 
 ### **Research Question 3**
