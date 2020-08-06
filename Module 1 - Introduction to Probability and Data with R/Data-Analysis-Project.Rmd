@@ -17,7 +17,7 @@ One of the first steps in the programming assignment is to load some useful pack
 
 #### Load packages
 
-```{r load-packages, message = FALSE}
+```{r load-packages, warning = FALSE, message = FALSE}
 library(ggplot2)
 library(dplyr)
 library(magrittr)
@@ -34,7 +34,7 @@ load("brfss2013.RData")
 
 ## Part 1: DATA
 
-In this first part of the assignment, we will be describing a little bit about the sample collecting and the implications of this data collection method on the scope of inference (generalizability / causality).
+In this first part of the assignment, I will be describing a little bit about the sample collecting and the implications of this data collection method on the scope of inference (generalizability / causality).
 
 ### The Data
 
@@ -58,7 +58,7 @@ The BRFSS is a cross-sectional telephone survey, which means that each year the 
 
 In this project I will be working to answer three research questions: 
 
-#### 1. **Is there any correlation between the number of hours slept and the participant's body mass index (BMI), overall, and between sexes? ** 
+#### 1. **Is there any relation between the number of hours slept and the participant's body mass index (BMI), overall, and between sexes? ** 
 
 **Background:** Some studies in the area of chrononutrition have raised a possible relationship between individuals' sleep time and their weight status. In this question, I want to explore this possible relation, under the assumption (hypothesis) that people who sleep less have a higher BMI.
 
@@ -150,6 +150,12 @@ Finally, when investigating sleep time by sex among nutritional status categorie
 
 ### **Research Question 2**
 
+To answer the second question, about the relationship between reported general health and sex, besides sex, I will be using another variable: 
+
+
+ * **Reported General Health categories **
+   - var: genhlt: *"Five-categories of Reported General Health"*
+
 ```{r}
 # Removing NAs and cleaning the data
 
@@ -163,12 +169,15 @@ str(question2)
 summary(question2)
 ```
 
+After removing missing values and refusals, we obtained 489788 observations. The structure of the data is organized in two factors: the factor ***sex*** with two levels, and the factor ***general health*** with five levels. 
 
 ```{r}
 table2 <- table(question2$sex, question2$genhlth)
 prop.table(table2, 1)
 
 ```
+
+When we print a *proportional table* crossing the data from both factors, we can see that there are no such differences in the proportion of each category of reported general health between sexes. 
 
 ```{r}
 ggplot(question2, aes(x= genhlth,  group=sex)) + 
@@ -181,12 +190,73 @@ ggplot(question2, aes(x= genhlth,  group=sex)) +
    
 ```
 
+The plot shows the proportion of each category of reported general health between sexes. As we can see, the data between sexes are very similar, which may suggest that men and women did not report differently their general health status. 
+
+Most of the participants reported a general health status ***good*** or ***very good*** (more than 60% for both sexes). Less than 10% of the participants in both sexes reported a ***poor*** health status, and the prevalence of individuals with reported general health considered ***excellent*** did not reach 20% in either men or women. 
+
+* ***In summary, it seems that there is no association between sex and reported general health status.*** 
 
 ### **Research Question 3**
+
+To answer the third question, about the relationship between income level and overall life satisfaction, in general and between sexes, I used two variables besides sex of the respondent: 
+
+* **Satisfaction with life** 
+   - var: lsatisfy - *"In general, how satisfied are you with your life?"*
+   
+   Categorical variable: 1 - Very Satisfied; 2 - Satisfied; 3 - Dissatisfied; 4 - Very Dissatisfied. *Presence of NAs and refuse (removed for the analysis)*
+
+ * **Computed income categories **
+   - var: X_incomg: *"Five-categories of Income Level"*
+   
+   Qualitative variable: 1 - Less than 15,000; 2 - 15,000 to less than 25,000; 3 - 25,000 to less than 35,000; 4 - 35,000 to less than 50,000; 5 - 50,000 or more. 
+
+```{r}
+# Removing NAs and cleaning the data
+
+question3 <- brfss2013 %>%
+   filter(!is.na(X_incomg)&!is.na(sex)&!is.na(lsatisfy))%>%
+   select(X_incomg, sex, lsatisfy)
+
+#Exploring the variables 
+
+str(question3)
+summary(question3)
+
+```
+
+After cleaning the data and removing NAs and refusal from the three variables of interest, we result in only 9,332 observations. It is important to consider than this data may not be representative of the population anymore due to the loss of statistical power. Then, this data cannot be generalized to the entire population of the study. 
+
+```{r}
+
+ggplot(question3, aes(x=sex, fill=X_incomg)) + geom_bar(position = "fill")+ 
+  facet_grid(.~lsatisfy) + ylab("Proportion") + 
+  ggtitle("Reported health vs. Income categories by sex") +
+  scale_fill_brewer("Income level", palette="Set2") +
+   theme_bw()
+```
+
+The plot shows a clear relationship between income level and life satisfaction. In both sexes, most of the people dissatisfied with their lives are in the lowest category of income level. On the other hand, for those who reported being very satisfied with their lives, most of them presented an annual income level above $50,000, for both sexes. 
+
+**The plot illustrates that as the proportion of people in the lowest categories of income tends to increase, life satisfaction tends to decrease.** 
+
+```{r}
+ggplot(question3, aes(x=sex, fill=X_incomg)) + geom_bar(position = "fill")+ 
+  ylab("Proportion") + 
+  ggtitle("Income level vs Sex") +
+  scale_fill_brewer("Income level", palette="Set2") +
+   theme_bw()
+```
+
+Finally, the plot shows that income level differs between sexes. Men tend to have a higher (50,000 or more) income level than women, while the lowest income level (Less than 15,000) have a higher proportion of women than men. 
+
+
+* ***In summary, it seems that there is an association between income level and overall life satisfaction. Besides, the proportion of individuals in each income level shows that men tend to be in the highest income level more than women, while the opposite is also true. Women tend to present a higher proportion of individuals in the lowest income level.***
+  
+
 
 
 **© Lais Duarte Batista**
  
 **All Rights Reserved**
  
-**August 01, 2020**
+**August 06, 2020**
