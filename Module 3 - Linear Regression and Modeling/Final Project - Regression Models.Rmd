@@ -1,0 +1,286 @@
+---
+title: "Final Project - Regression Models"
+output: html_document
+author: "Lais Duarte Batista"
+Date: "Aug 25, 2020"
+---
+
+Data analysis project for the Linear Regression and Modeling course by Duke University (Coursera)
+
+### Load packages
+
+```{r load-packages, warning = FALSE, message = FALSE}
+library(tidyverse)
+library(ggplot2)
+library(dplyr)
+library(magrittr)
+library(scales)
+library(RColorBrewer)
+library(GGally)
+library(car)
+```
+
+### Load data
+
+```{r load-data}
+load("movies.RData")
+```
+
+
+## Part 1: DATA
+
+This project is interested in learning what attributes make a movie popular.
+
+The data set is comprised of 651 randomly sampled movies produced and released before 2016. The dataset includes information from Rotten Tomatoes and IMDB for a random sample of movies. 
+
+* As the sample was randomly selected, we could say that this sample is generalizable for movies released before 2016. 
+
+* However, we are not able to evaluate causality. There is not a controlled experiment (with a random assignment) that allows us to test causal inference. We might check correlation, association, but not causality in this type of study. 
+
+
+## Part 2: RESEARCH QUESTION
+
+
+* ####  **What are the factors that determine a movie's audience score? **
+
+
+The opinion of the public and critics about a movie can be controversial. In fact, some movies awarded by critics may be criticized or poorly evaluated by the general public. One example of that is when we have Oscar winners that are a surprise for the general public. Therefore, for the general audience, which are the characteristics of a good movie? What do they take into consideration to rate a movie? 
+
+
+## Part 3: EXPLORATORY DATA ANALYSIS (EDA)
+
+The first part of the EDA is to clean the database to include only the relevant and of interest variables. In the GitHub repository for the course it is possible to access the codebook for the entire database: https://github.com/ldbatista/Statistics-with-R.
+
+
+Many variables are just for information purpose, such as URL link for the movie on the IMDB and Rotten Tomatoes website. This kind of variable are not relevant for modeling, therefore, they were removed for the following analyses. 
+
+Then, the following variables were selected to the further analyses: 
+
+**DEPENDENT VARIABLE:**
+
+* *audience_score* : Audience score on Rotten Tomatoes
+
+**INDEPENDENT VARIABLES:**
+
+* *title_type* : Type of movie (Documentary, Feature Film, TV Movie)
+* *genre* : Genre of movie (Action & Adventure, Comedy, Documentary, Drama, Horror, Mystery & Suspense, Other)
+* *runtime* : Runtime of movie (in minutes)
+* *thtr_rel_year* : Year the movie is released in theaters
+* *thtr_rel_month* : Month the movie is released in theaters
+* *imdb_rating* : Rating on IMDB
+* *imdb_num_votes* : Number of votes on IMDB
+* *critics_score* : Critics score on Rotten Tomatoes
+* *audience_rating* : Categorical variable for audience rating on Rotten Tomatoes (Spilled, Upright)
+* *best_pic_nom* : Whether or not the movie was nominated for a best picture Oscar (no, yes)
+* *best_pic_win* : Whether or not the movie won a best picture Oscar (no, yes)
+* *best_actor_win* : Whether or not one of the main actors in the movie ever won an Oscar (no, yes)
+* *best_actress win* : Whether or not one of the main actresses in the movie ever won an Oscar (no, yes) 
+* *best_dir_win* : Whether or not the director of the movie ever won an Oscar (no, yes) 
+
+
+```{r}
+#Selecting the variables of interest 
+
+model <- select(movies, audience_score, title_type, genre, runtime, thtr_rel_year, thtr_rel_month,imdb_rating, imdb_num_votes, critics_score, audience_rating, best_pic_nom, best_pic_win, best_actor_win, best_actress_win, best_dir_win) 
+
+#Removing NAs
+modeldata <- data.frame(!is.na(model))
+```
+
+#### Linear Regression - Assumptions:
+
+We can assume that the observations are independent, meeting the **independence of observations** assumption. 
+
+* **Linearity** - I will check linearity between the dependent variable and the other quantitative independent variables by analyzing the scatterplots in a paired matrix. We can also assess collinearity by analyzing the correlation coefficients between the variables. 
+
+* **Normality** - I will check the normality for the dependent variable as well as the residuals of the model (nearly normal residuals with mean 0, which will be tested later)
+
+* **Homoscedasticity** - The variance of residual is the same for any value of X. This assumption will me checked later, after modeling by analyzing residuals (residuals diagnostic plots). 
+
+
+**NORMALITY**
+
+```{r}
+summary(model$audience_score)
+
+#Histograma 
+histograma<-hist(model$audience_score, breaks = 10, col="lightsteelblue", border="midnightblue", xlim=c(0,100),main="Histogram of Audience Score", xlab="Audience Score (Points)", ylab="Frequency");
+xfit<-seq(min(model$audience_score),max(model$audience_score))
+yfit<-dnorm(xfit,mean=mean(model$audience_score),sd=sd(model$audience_score))
+yfit <- yfit*diff(histograma$mids[1:2])*length(model$audience_score)
+lines(xfit, yfit, col="aquamarine4", lwd=1)
+abline(v = c(median(model$audience_score), mean(model$audience_score)),
+       col = c("brown4", "lightsalmon1"),
+       lwd = c(1,1), lty=c(1,2));
+legend(x="topleft", #Position of the legend
+       c("Median","Mean"), #Names on the legend
+       cex=1, col=c("brown4","lightsalmon1"),lty=c(1,2),lwd=c(1,2)) 
+
+#Boxplot
+boxplot(model$audience_score,
+        ylab="Audience Score (Points)",
+        col="lightsteelblue3",
+        border="midnightblue")
+
+```
+
+My variable of interested to be modeled is the "*audience_score*". Based on the summary statistics, we can see that the movie with the lowest score is 11 points and the highest score is 97 points. The mean and the median are quite close (**mean = 62.36 points; median = 65 points**). 
+
+The **boxplot** and the **histogram** of the dependent variable (audience_score) were used to check the assumption of normality, required to a linear regression model with a Gaussian link function. 
+
+Both plots showed pretty good adherence to the Normal distribution. In the histogram plot, we can see a nearly normal curve. The boxplot is quite symmetric, with no outliers.
+
+
+**LINEARITY**
+
+```{r, warning = FALSE, message = FALSE}
+
+quantmodel <- select(model, audience_score, runtime, thtr_rel_year, thtr_rel_month, imdb_rating, imdb_num_votes, critics_score)
+
+ggpairs(quantmodel)
+
+```
+
+Another assumption for linear regression is the **LINEAR** relationship between the dependent variable and the other quantitative variables. We can check this assumption by analyzing the scatterplot of these variables in relation to the audience score. 
+
+In the matrix above besides the linear relationship between the variables, we can also check the presence of **multicollinearity**, which means that two variables are highly correlated. The highest correlation coefficient was between the audience score (our dependent variable) and the IMDB rating (r=0.865). I decided to use r>0.90 as a threshold for collinearity. Therefore, I decided to include this variable in the initial model, and check its performance later on the modeling approach.
+
+* The scatterplots of the dependent variable were mostly linear. Only "*runtime*" and "*IMDB_num_votes*" presented a biased trend. For that reason, as the linearity assumption could not be met, I decided to remove these two variables from the further analyses (modeling). 
+
+
+## Part 4: MODELING
+
+```{r}
+#Selecting the variables to be included in the modeling
+
+modeldta <- select(model, audience_score, title_type, genre, thtr_rel_year, thtr_rel_month,imdb_rating, critics_score, audience_rating, best_pic_nom, best_pic_win, best_actor_win, best_actress_win, best_dir_win) 
+
+```
+
+As the variables "*runtime*" and "*IMDB_num_votes*" were excluded for the modeling analysis, firstly, I selected only the variables that will be used in the further analyses. 
+
+The selection method that I used was the "backward" elimination process. Then, I will start with the full model (all variables included), and I will remove from the highest p-value until I reached a parsimonious model with significant predictors. 
+
+```{r}
+#Full Model
+model1 <- lm(audience_score~., data=modeldta)
+summary(model1)
+
+#"best_dir_winyes" had the highest p-value: Removed for the next step
+model2 <- lm(audience_score~title_type+genre+thtr_rel_year+thtr_rel_month+imdb_rating+critics_score+audience_rating+best_pic_nom+best_pic_win+best_actor_win+best_actress_win, data=modeldta)
+summary(model2)
+
+#"best_actor_win" next variable to be removed in the next step
+model3 <- lm(audience_score~title_type+genre+thtr_rel_year+thtr_rel_month+imdb_rating+critics_score+audience_rating+best_pic_nom+best_pic_win+best_actress_win, data=modeldta)
+summary(model3)
+
+#"genre" next variable to be removed in the next step
+model4 <- lm(audience_score~title_type+thtr_rel_year+thtr_rel_month+imdb_rating+critics_score+audience_rating+best_pic_nom+best_pic_win+best_actress_win, data=modeldta)
+summary(model4)
+
+#"best_pic_win" next variable to be removed in the next step
+model5 <- lm(audience_score~title_type+thtr_rel_year+thtr_rel_month+imdb_rating+critics_score+audience_rating+best_pic_nom+best_actress_win, data=modeldta)
+summary(model5)
+
+#"title_type" next variable to be removed in the next step
+model6 <- lm(audience_score~thtr_rel_year+thtr_rel_month+imdb_rating+critics_score+audience_rating+best_pic_nom+best_actress_win, data=modeldta)
+summary(model6)
+
+#"thtr_rel_year" next variable to be removed in the next step
+model7 <- lm(audience_score~thtr_rel_month+imdb_rating+critics_score+audience_rating+best_pic_nom+best_actress_win, data=modeldta)
+summary(model7)
+
+#"critics_score" next variable to be removed in the next step
+model8 <- lm(audience_score~thtr_rel_month+imdb_rating+audience_rating+best_pic_nom+best_actress_win, data=modeldta)
+summary(model8)
+
+```
+
+After eight models we found a parsimonious one with mostly variable as a statistically significant predictor of audience_score. The variable "thtr_rel_month" even though was not significant, I decided to keep it in the final model because the removal of this variable affected the other significant results. Besides, the variable presented a borderline p-value (very close to the significant cutoff), and its inclusion did not affect the final adjusted R2. 
+
+Another important parameter is the **adjusted R2**. During the modeling process, its value did not change substantially, which indicates that the removal of the variables during the backward elimination process did not impact this parameter. **Therefore, we have a final model that is parsimonious, significant, and with a high adjusted R2**.  
+
+* #### **Model Diagnostics**
+
+```{r}
+par(mfrow = c(1, 2))
+
+#Nearly Normal Residuals
+hist(model8$residuals, main='Histogram of Residuals')
+qqnorm(model8$residuals,main='Normal Probability Plot of Residuals')
+qqline(model8$residuals)
+
+par(mfrow = c(1, 1))
+
+#Homoscedasticity (Constant variability of residuals)
+plot(model8$residuals~model8$fitted,main='Residuals vs.Predicted (fitted)')
+abline(0,0)
+```
+
+To check the last assumptions of linear regression models, I performed a model diagnostic test. First, I analyzed if the residuals of the models are **nearly normally distributed**. As we can see in the histogram and Q-Q plot, the residuals presented a nearly normal distribution. There are some points above the normal line in the Q-Q plot, as well as a slightly right-skewed distribution, but overall the residuals do not show a biased distribution. 
+
+* **Homoscedasticity** was tested by analyzing the plot of the residuals by the predicted (fitted) values. The model seems to be homoscedastic because the points are equally distributed around zero, which means that there is a constant variability of the residuals. Even though it seems to form some point clouds, the variability is still constant around zero. 
+
+
+### **Interpreting the model coefficients**
+
+* **IMDB rating:** All else held constant, for each 1 point increase in **IMDB rating** the model predicts the audience score to be greater on average by 9.50 points.
+
+* **Audience Rating:** All else held constant, the model predicts that **upright** movies are, on average, 20.74 points greater in audience score than **spilled** movies.
+
+* **Best Picture "Oscar" Nomination:** All else held constant, the model predicts that **movies that were nominated for a best picture Oscar** are, on average, 3.32 points greater in audience score than **movies that were not nominated**.
+
+* **Best Actress "Oscar" Winner:** All else held constant, the model predicts that **movies casting Oscar-winning actresses** are, on average, 1.74 points lower in audience score than **movies that do not cast Oscar-winning actresses**.
+
+## Part 5: PREDICTION
+
+For the prediction task, I decided to test two movies that were not in the original modeling database - ***"Mad Max: Fury Road" (2015)*** and ***"Nurse Betty" (2000)***. I chose two movies that had different characteristics, as well as different audience score on the Rotten Tomatoes website. Mad Max: Fury Road has a higher score, with the best picture nomination, as well as a higher IMDB rating. On the other hand, Nurse Betty is a movie a lower score, categorizes as "Spilled" by the audience. 
+
+The information about each movie used to predict the model can be found on IMDB and Rotten Tomatoes websites:
+
+* **Mad Max: Fury Road**
+
+*IMDB:* https://www.imdb.com/title/tt1392190/
+
+*Rotten Tomatoes:* https://www.rottentomatoes.com/m/mad_max_fury_road
+
+
+* **Nurse Betty**
+
+*IMDB:* https://www.imdb.com/title/tt0171580/?ref_=nv_sr_srsg_0
+
+*Rotten Tomatoes:* https://www.rottentomatoes.com/m/nurse_betty
+
+```{r}
+#
+madmax <- data.frame(thtr_rel_month = 5, imdb_rating = 8.1, audience_rating = "Upright", best_pic_nom = "yes", best_actress_win = "yes")
+predict(model8, madmax, interval = "prediction", level = 0.95)
+
+
+nurse <- data.frame(thtr_rel_month = 12, imdb_rating = 6.1, audience_rating = "Spilled", best_pic_nom = "no", best_actress_win = "yes")
+predict(model8, nurse, interval = "prediction", level = 0.95)
+
+```
+
+The actual audience scores in Rotten Tomatoes website were 85% for "Mad Max: Fury Road" and 45% for "Nurse Betty", and the model predicted it to be **88.4%** and **44.2%**, respectively, which implies that the **model was able to accurately predict the movie's audience score**.  
+
+## Part 6: CONCLUSION
+
+The initial aim of this project was to investigate the parameters that influence a movie's audience score  (audience_score). The final model was able to identify 4 factors that were statistically significantly associated with the dependent variable, adjusted by the month of release of the movie. 
+
+* **IMDB rating** 
+
+* **Audience Rating** 
+
+* **Best Picture "Oscar" Nomination** 
+
+* **Best Actress "Oscar" Winner**
+
+These factors are responsible for 88.31% (Adjusted R2 = 0.8831) of the explained variance in the dependent variable (audience_score), which means that 11.69% of the variance in a movie's audience score could not be explained by this model. 
+
+
+**© Lais Duarte Batista**
+ 
+**All Rights Reserved**
+ 
+**August 25, 2020**
